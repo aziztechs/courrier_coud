@@ -1,0 +1,16 @@
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+
+#     # Empêche l'accès aux dossiers spécifiés
+#     RewriteRule ^/ - [F,L]
+#     RewriteRule ^dossier2/ - [F,L]
+#     RewriteRule ^dossier3/ - [F,L]
+
+#     # Vous pouvez ajouter d'autres dossiers ici
+# </IfModule>
+
+# # Empêche l'affichage des fichiers .htaccess eux-mêmes
+# <Files ".htaccess">
+#     Require all denied
+# </Files>
+Options -Indexes

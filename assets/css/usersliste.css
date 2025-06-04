@@ -1,0 +1,208 @@
+.container-table {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 15px;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: none;
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 10px;
+    background: linear-gradient(135deg, #0056b3, #003366) !important;
+    border-bottom: none;
+}
+
+.card-header h1 {
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin: 0;
+    font-size: 2rem;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+.form-control {
+    border-radius: 5px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    border-color: #0056b3;
+    box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.25);
+}
+
+.btn {
+    border-radius: 5px;
+    padding: 10px 15px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.btn-primary:hover {
+    background-color: #003d7a;
+    border-color: #003d7a;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.table-responsive {
+    max-width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    color: #0056b3;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    padding: 15px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table tbody td {
+    vertical-align: middle;
+    padding: 12px 15px;
+    border-top: 1px solid #e9ecef;
+    font-size: 0.95rem;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 86, 179, 0.03);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 86, 179, 0.08);
+    transition: background-color 0.2s;
+}
+
+.btn-sm {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #d39e00;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.pagination {
+    margin-top: 25px;
+}
+
+.page-item.active .page-link {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.page-link {
+    color: #0056b3;
+    padding: 8px 16px;
+    border: 1px solid #dee2e6;
+    margin: 0 3px;
+    border-radius: 5px !important;
+}
+
+.page-link:hover {
+    color: #003d7a;
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.bi {
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .card-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .col-md-3, .col-md-2 {
+        margin-bottom: 10px;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table, .table tbody, .table tr, .table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .table tr {
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px;
+    }
+    
+    .table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 15px;
+        width: calc(50% - 15px);
+        padding-right: 15px;
+        font-weight: 600;
+        text-align: left;
+        color: #0056b3;
+    }
+    
+    .btn-group {
+        justify-content: flex-end;
+    }
+}
