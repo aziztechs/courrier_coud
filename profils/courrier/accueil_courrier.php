@@ -5,10 +5,12 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
     session_destroy();
     exit();
 }
+
 unset($_SESSION['classe']);
 include('../../traitement/fonction.php');
 include('../../traitement/fonctionCour.php');
 include('../../activite.php');
+
 ?>
 
 <!DOCTYPE html>
@@ -50,7 +52,7 @@ include('../../activite.php');
     <div class="main-container">
         <div class="form-container">
             <div class="form-section">
-                <div class="form-header" style="background: linear-gradient(135deg, #0056B3 0%, #0056b3; 100%);">
+                <div class="form-header" style="background: linear-gradient(135deg, #0056B3 0%, #0056b3 100%);">
                     <h2><i class="fas fa-envelope me-2"></i>ENREGISTREMENT DE COURRIER</h2>
                 </div>
                 

@@ -339,3 +339,23 @@ function supprimerCourrier($id) {
 }
 
 // ... [Le reste de vos fonctions existantes peut être conservé] ...
+
+function getCourrierById($id_courrier) {
+    global $connexion;
+    $sql = "SELECT * FROM courrier WHERE id_courrier = ?";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("i", $id_courrier);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->fetch_assoc();
+}
+
+function logActivity($username, $action) {
+    global $connexion;
+    $sql = "INSERT INTO activity_log (username, action, timestamp) VALUES (?, ?, NOW())";
+    $stmt = $connexion->prepare($sql);
+    $stmt->bind_param("ss", $username, $action);
+    $stmt->execute();
+}
+
+

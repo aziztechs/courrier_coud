@@ -148,7 +148,7 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
                 position: absolute;
                 top: 70px;
                 right: 20px;
-                background: white;
+                background: #0076FF;
                 padding: 15px;
                 border-radius: 5px;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -177,7 +177,7 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
                 <a class="site-logo" href="/courrier_coud/login.php">
                     <img src="/courrier_coud/assets/images/logo.png" alt="Logo COURRIER_COUD" />
                 </a>
-                <div class="institution-name">COURRIER_COUD</div>
+                <div class="institution-name">COURRIER</div>
             </div>
 
             <div class="header-nav-right ">
@@ -189,19 +189,30 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
                     </li>
                     <li class="nav-item">
                         <a class="btn--primary text-white" href="/courrier_coud/profils/courrier/liste_courrier.php">
-                            <i class="fa fa-list" aria-hidden="true"></i> Liste Courrier
+                            <i class="fas fa-envelope" aria-hidden="true"></i> Courrier
                         </a>
                     </li>
-                    
+                    <?php if(!isset($_SESSION['Fonction']) || $_SESSION['Fonction'] !== 'assistant_courrier'): ?>
                     <li class="nav-item">
-                        <?php
-                        $isAssistant = isset($_SESSION['Fonction']) && ($_SESSION['Fonction'] === 'assistant_courrier');
-                        $userListClass = $isAssistant ? 'btn--primary text-white disabled-link' : 'btn--primary text-white';
-                        ?>
-                        <a class="<?= $userListClass ?>" href="<?= $isAssistant ? '#' : '/courrier_coud/profils/admin/users.php' ?>">
-                            <i class="fa fa-users" aria-hidden="true"></i> Liste Utilisateurs
+                        <a class="btn--primary text-white" href="/courrier_coud/profils/courrier/liste_archive.php">
+                            <i class="fas fa-box-archive" aria-hidden="true"></i> Archivage
                         </a>
                     </li>
+                     <?php endif; ?>
+                     <?php if(!isset($_SESSION['Fonction']) || $_SESSION['Fonction'] !== 'assistant_courrier'): ?>
+                    <li class="nav-item">
+                        <a class="btn--primary text-white" href="/courrier_coud/profils/suivi/liste_suivi_courrier.php">
+                            <i class="fas fa-eye "  aria-hidden="true"></i> Suivi 
+                        </a>
+                    </li>
+                     <?php endif; ?>
+                    <?php if (!isset($_SESSION['Fonction']) || $_SESSION['Fonction'] !== 'assistant_courrier'): ?>
+                        <li class="nav-item">
+                            <a class="btn--primary text-white" href="/courrier_coud/profils/admin/users.php">
+                                <i class="fa fa-users" aria-hidden="true"></i> Utilisateurs
+                            </a>
+                        </li>
+                    <?php endif; ?>
                 
                     <li class="nav-item">
                         <a class="btn--primary text-danger" href="/courrier_coud/index.php">

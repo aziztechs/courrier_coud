@@ -27,10 +27,10 @@ if (!empty($_GET['username']) && !empty($_GET['password'])) {
 
         // Rediriger en fonction de la fonction de l'utilisateur
         if ($row['Fonction'] == 'assistant_courrier') {
-            header('Location: /courrier_coud/profils/courrier/accueil_courrier.php');
+            header('Location: /courrier_coud/profils/courrier/dashboard.php');
             exit();
         } else if ($row['Fonction'] == 'chef_courrier') {
-            header('Location: /courrier_coud/profils/courrier/liste_courrier.php');
+            header('Location: /courrier_coud/profils/courrier/dashboard.php');
             exit();
         }
     } else {

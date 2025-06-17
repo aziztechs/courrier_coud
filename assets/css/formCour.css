@@ -126,3 +126,56 @@ body {
                 font-size: 1.3rem;
             }
         }
+
+
+         /* Style personnalisé pour le formulaire */
+        .form-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+        
+        .form-header {
+            background-color: #0056b3;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        .file-upload-container {
+            border: 2px dashed #dee2e6;
+            padding: 1.5rem;
+            text-align: center;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-container:hover {
+            border-color: #0056b3;
+            background-color: #f8f9fa;
+        }
+        
+        .btn-submit {
+            background-color: #0056b3;
+            border: none;
+            padding: 0.5rem 2rem;
+            font-weight: 500;
+        }
+        
+        .btn-submit:hover {
+            background-color: #003d7a;
+        }

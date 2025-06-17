@@ -20,7 +20,8 @@ $stats = [
     'courriers_depart' => 0,
     'courriers_internes' => 0,
     'courriers_externes' => 0,
-    'courriers_non_traites' => 0
+    'courriers_non_traites' => 0,
+    'courriers_archives' => 0 // Si vous avez une table d'archives, vous pouvez l'ajouter ici
 ];
 
 // Requêtes pour les statistiques
@@ -32,6 +33,10 @@ $queries = [
     'courriers_externes' => "SELECT COUNT(*) FROM courrier WHERE Type = 'externe'",
     'courriers_non_traites' => "SELECT COUNT(DISTINCT c.id_courrier) FROM courrier c LEFT JOIN imputation i ON c.id_courrier = i.id_courrier WHERE i.id_imputation IS NULL"
 ];
+
+// Si vous avez une table d'archives, vous pouvez ajouter une requête pour les courriers archivés
+$queries['courriers_archives'] = "SELECT COUNT(*) FROM archive WHERE date_archivage IS NOT NULL";
+
 
 foreach ($queries as $key => $sql) {
     $result = $connexion->query($sql);
@@ -84,7 +89,17 @@ $last_courriers = $connexion->query($query)->fetch_all(MYSQLI_ASSOC);
 </head>
 <body>
     <?php include('../../head.php'); ?>
-    <br>
+    <div class="info-banner text-white d-flex justify-content-center align-items-center"
+         style="height: 120px; background-color: #0056b3;">
+        <div class="welcome-text"></div>
+        <div class="user-info-section">
+            <p class="lead">Espace Administration : Tableau de Bord Bureau Courrier !<br>
+                <span>
+                    (<?= htmlspecialchars($_SESSION['Prenom'] . ' ' . $_SESSION['Nom'] . ' - ' . $_SESSION['Fonction']) ?>)
+                </span>
+            </p>
+        </div>
+    </div> 
     <div class="container-fluid mt-4">
         <div class="row">
         
@@ -149,6 +164,19 @@ $last_courriers = $connexion->query($query)->fetch_all(MYSQLI_ASSOC);
                                     <div>
                                         <h6 class="card-title">Courriers Externes</h6>
                                         <h2 class="mb-0"><?= $stats['courriers_externes'] ?></h2>
+                                    </div>
+                                    <i class="bi bi-globe" style="font-size: 2rem;"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card text-white bg-danger  stat-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="card-title">Courriers Archivés</h6>
+                                        <h2 class="mb-0"><?= $stats['courriers_archives'] ?></h2>
                                     </div>
                                     <i class="bi bi-globe" style="font-size: 2rem;"></i>
                                 </div>
