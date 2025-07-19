@@ -1,85 +1,83 @@
 <?php
+// Définir l'environnement si non défini
+if (!defined('ENVIRONMENT')) {
+    define('ENVIRONMENT', 'production'); // ou 'development' selon votre besoin
+}
 session_start();
-if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
-    header('Location: /courrier_coud/');
-    session_destroy();
+
+// 1. Vérification de l'authentification et des autorisations
+if (empty($_SESSION['username']) || $_SESSION['Fonction'] === 'assistant_courrier') {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Accès non autorisé']);
     exit();
 }
 
-require_once('../../traitement/fonction_facture.php');
-require_once('../../traitement/factures/traitement_sup_facture.php');
+require_once __DIR__ . '/../../traitement/fonction_facture.php';
 
+// 2. Vérification du token CSRF
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Méthode non autorisée']);
+    exit();
+}
 
-?>
+if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Token CSRF invalide']);
+    exit();
+}
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COUD - Supprimer Facture</title>
-    <link rel="shortcut icon" href="../../assets/img/log.gif" type="image/x-icon">
-    <link rel="stylesheet" href="../../assets/css/styleCourrier.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <style>
-        .confirmation-box {
-            max-width: 600px;
-            margin: 2rem auto;
-            border-left: 5px solid #dc3545;
-        }
-    </style>
-</head>
-<body>
-    <?php include('../../head.php'); ?>
-    <div class="info-banner text-white d-flex justify-content-center align-items-center"
-         style="height: 120px; background-color: #0056b3;">
-        <div class="welcome-text"></div>
-        <div class="user-info-section">
-            <p class="lead">Espace Administration : Suppression de Facture<br>
-                <span>
-                    (<?= htmlspecialchars($_SESSION['Prenom'] . ' ' . $_SESSION['Nom'] . ' - ' . $_SESSION['Fonction']) ?>)
-                </span>
-            </p>
-        </div>
-    </div>
+// 3. Validation des données
+if (empty($_POST['id_facture']) || !ctype_digit($_POST['id_facture'])) {
+    http_response_code(400);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'ID facture invalide']);
+    exit();
+}
+
+$id_facture = (int)$_POST['id_facture'];
+
+try {
+    // 4. Vérification de l'existence de la facture
+    $facture = getFactureById($id_facture);
+    if (!$facture) {
+        http_response_code(404);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Facture introuvable']);
+        exit();
+    }
+
+    // 5. Suppression de la facture
+    $resultat = supprimerFacture($id_facture);
     
-    <div class="container_fluid mt-5">
-        <div class="card confirmation-box">
-            <div class="card-header bg-danger text-white">
-                <h2 class="h4"><i class="bi bi-exclamation-triangle"></i> Confirmation de suppression</h2>
-            </div>
-            <div class="card-body">
-                <h3 class="h5">Êtes-vous sûr de vouloir supprimer cette facture ?</h3>
-                
-                <div class="alert alert-warning">
-                    <i class="bi bi-info-circle"></i> Cette action est irréversible et supprimera définitivement :
-                    <ul class="mt-2">
-                        <li>La facture <strong>#<?= htmlspecialchars($facture['numero_facture']) ?></strong></li>
-                        <li>Le courrier associé <strong><?= htmlspecialchars($facture['numero_courrier']) ?></strong></li>
-                        <?php if (!empty($facture['facture_pdf'])): ?>
-                            <li>Le fichier PDF joint</li>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-                
-                <div class="d-flex justify-content-between mt-4">
-                    <form method="post">
-                        <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-trash"></i> Confirmer la suppression
-                        </button>
-                    </form>
-                    <a href="liste_factures.php" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Annuler et retour
-                    </a>
-                </div>
-            </div>
-            <div class="card-footer text-muted small">
-                <i class="bi bi-clock-history"></i> Action effectuée le <?= date('d/m/Y à H:i') ?>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    if ($resultat) {
+        // Journalisation de la suppression
+        error_log("Facture #$id_facture supprimée par l'utilisateur " . $_SESSION['username']);
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'message' => 'Facture #' . $id_facture . ' supprimée avec succès',
+            'deleted_id' => $id_facture
+        ]);
+    } else {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Échec de la suppression en base de données'
+        ]);
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    error_log('Erreur suppression facture #' . $id_facture . ': ' . $e->getMessage());
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'message' => 'Erreur interne du serveur',
+        'error_details' => (ENVIRONMENT === 'development') ? $e->getMessage() : null
+    ]);
+}

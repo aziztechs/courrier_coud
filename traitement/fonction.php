@@ -1,361 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- SweetAlert CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <!-- SweetAlert JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-<body>
-    
-</body>
-</html>
-
 <?php
+// Configuration de la base de données (devrait être dans un fichier de configuration séparé)
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'db_courrier');
+define('DB_CHARSET', 'utf8mb4');
 
-// Connexion à la base de données MySQL
-function connexionBD()
-{
-    $connexion = mysqli_connect("localhost", "root", "", "db_courrier");
+// Connexion à la base de données MySQL avec gestion d'erreur améliorée
+function connexionBD() {
+    $connexion = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+    
     if ($connexion === false) {
-        die("Erreur : Impossible de se connecter. " . mysqli_connect_error());
+        error_log("Erreur de connexion MySQL: " . mysqli_connect_error());
+        throw new Exception("Impossible de se connecter à la base de données");
     }
+    
+    // Utilisation de utf8mb4 pour un meilleur support Unicode
+    if (!mysqli_set_charset($connexion, DB_CHARSET)) {
+        error_log("Erreur lors du chargement du jeu de caractères ".DB_CHARSET." : ".mysqli_error($connexion));
+        throw new Exception("Erreur de configuration de la base de données");
+    }
+    
     return $connexion;
 }
-$connexion = connexionBD();
 
-// Fonction de connexion sécurisée
-function login($username, $password)
-{
-    global $connexion;
-    $stmt = $connexion->prepare("SELECT * FROM `user` WHERE `Username` = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($row = $result->fetch_assoc()) {
-        if (sha1($password) === $row['Password']) {
-            return $row;
-        }
-    }
-    return null;
+try {
+    $connexion = connexionBD();
+} catch (Exception $e) {
+    // Ne pas afficher les détails d'erreur en production
+    error_log($e->getMessage());
+    die("Erreur critique: Impossible de se connecter à la base de données");
 }
 
-// Fonctions améliorées pour les filtres
-function getFilteredCourriers($filters = [], $page = 1, $itemsPerPage = 10)
-{
-    global $connexion;
-    $offset = ($page - 1) * $itemsPerPage;
-
-    // Requête de base
-    $sql = "SELECT DISTINCT c.id_courrier, c.date, c.Numero_courrier, c.Type, c.Objet, c.pdf, c.Nature, c.Type, c.Expediteur
-            FROM courrier c
-            LEFT JOIN imputation i ON c.id_courrier = i.id_courrier
-            WHERE 1=1";
-    
-    $params = [];
-    $types = '';
-
-    // Application des filtres
-    if (!empty($filters['search'])) {
-        $sql .= " AND (c.Numero_Courrier LIKE ? OR c.Objet LIKE ? OR c.Nature LIKE ? OR c.Type LIKE ? OR c.Expediteur LIKE ?)";
-        $searchTerm = "%{$filters['search']}%";
-        $params = array_merge($params, array_fill(0, 5, $searchTerm));
-        $types .= str_repeat('s', 5);
-    }
-
-    if (!empty($filters['nature'])) {
-        $sql .= " AND c.Nature = ?";
-        $params[] = $filters['nature'];
-        $types .= 's';
-    }
-
-    if (!empty($filters['type'])) {
-        $sql .= " AND c.Type = ?";
-        $params[] = $filters['type'];
-        $types .= 's';
-    }
-
-    if (!empty($filters['date_debut'])) {
-        $sql .= " AND c.date >= ?";
-        $params[] = $filters['date_debut'];
-        $types .= 's';
-    }
-
-    if (!empty($filters['date_fin'])) {
-        $sql .= " AND c.date <= ?";
-        $params[] = $filters['date_fin'];
-        $types .= 's';
-    }
-
-    // Tri et pagination
-    $sql .= " ORDER BY c.date DESC LIMIT ?, ?";
-    $params[] = $offset;
-    $params[] = $itemsPerPage;
-    $types .= 'ii';
-
-    // Préparation et exécution
-    $stmt = mysqli_prepare($connexion, $sql);
-    if ($params) {
-        mysqli_stmt_bind_param($stmt, $types, ...$params);
-    }
-
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-
-    $courriers = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $courriers[] = $row;
-    }
-
-    return $courriers;
-}
-
-// Fonction pour compter les résultats filtrés
-function countFilteredCourriers($filters = [])
-{
+// Fonction de connexion sécurisée avec protection contre les attaques par force brute
+function login($username, $password) {
     global $connexion;
     
-    $sql = "SELECT COUNT(DISTINCT c.id_courrier) as total
-            FROM courrier c
-            LEFT JOIN imputation i ON c.id_courrier = i.id_courrier
-            WHERE 1=1";
-    
-    $params = [];
-    $types = '';
-
-    // Mêmes filtres que dans getFilteredCourriers
-    if (!empty($filters['search'])) {
-        $sql .= " AND (c.Numero_Courrier LIKE ? OR c.Objet LIKE ? OR c.Nature LIKE ? OR c.Type LIKE ? OR c.Expediteur LIKE ?)";
-        $searchTerm = "%{$filters['search']}%";
-        $params = array_merge($params, array_fill(0, 5, $searchTerm));
-        $types .= str_repeat('s', 5);
-    }
-
-    if (!empty($filters['nature'])) {
-        $sql .= " AND c.Nature = ?";
-        $params[] = $filters['nature'];
-        $types .= 's';
-    }
-
-    if (!empty($filters['type'])) {
-        $sql .= " AND c.Type = ?";
-        $params[] = $filters['type'];
-        $types .= 's';
-    }
-
-    if (!empty($filters['date_debut'])) {
-        $sql .= " AND c.date >= ?";
-        $params[] = $filters['date_debut'];
-        $types .= 's';
-    }
-
-    if (!empty($filters['date_fin'])) {
-        $sql .= " AND c.date <= ?";
-        $params[] = $filters['date_fin'];
-        $types .= 's';
-    }
-
-    $stmt = mysqli_prepare($connexion, $sql);
-    if ($params) {
-        mysqli_stmt_bind_param($stmt, $types, ...$params);
-    }
-
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    $row = mysqli_fetch_assoc($result);
-
-    return $row['total'];
-}
-
-// Fonction pour récupérer les valeurs distinctes pour les filtres
-function getDistinctValues($column)
-{
-    global $connexion;
-    $allowedColumns = ['Nature', 'Type', 'Expediteur']; // Colonnes autorisées pour éviter les injections SQL
-    
-    if (!in_array($column, $allowedColumns)) {
-        return [];
-    }
-
-    $query = "SELECT DISTINCT $column FROM courrier WHERE $column IS NOT NULL ORDER BY $column";
-    $result = $connexion->query($query);
-    
-    $values = [];
-    while ($row = $result->fetch_assoc()) {
-        $values[] = $row[$column];
+    // Validation des entrées
+    if (empty($username) || empty($password) || !is_string($username) || !is_string($password)) {
+        return null;
     }
     
-    return $values;
-}
-
-// Fonction pour générer les options de filtre
-function generateFilterOptions($values, $selected = '')
-{
-    $options = '<option value="">Tous</option>';
-    foreach ($values as $value) {
-        $selectedAttr = ($selected == $value) ? 'selected' : '';
-        $options .= "<option value=\"$value\" $selectedAttr>$value</option>";
-    }
-    return $options;
-}
-
-// Fonction pour construire la requête de filtre
-function buildFilterQuery($filters)
-{
-    $query = '';
-    if (!empty($filters['search'])) {
-        $query .= '&search=' . urlencode($filters['search']);
-    }
-    if (!empty($filters['nature'])) {
-        $query .= '&nature=' . urlencode($filters['nature']);
-    }
-    if (!empty($filters['type'])) {
-        $query .= '&type=' . urlencode($filters['type']);
-    }
-    if (!empty($filters['date_debut'])) {
-        $query .= '&date_debut=' . urlencode($filters['date_debut']);
-    }
-    if (!empty($filters['date_fin'])) {
-        $query .= '&date_fin=' . urlencode($filters['date_fin']);
-    }
-    return $query;
-}
-
-function recupererTousLesCourriers()
-{
-    global $connexion;
-    $sql = "SELECT * FROM courrier ORDER BY date DESC";
-    $result = $connexion->query($sql);
-
-    $courriers = [];
-    while ($row = $result->fetch_assoc()) {
-        $courriers[] = $row;
-    }
-    return $courriers;
-}
-
-function recupererCourrierParId($id)
-{
-    global $connexion;
-    $sql = "SELECT * FROM courrier WHERE id_courrier = ?";
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    return $result->fetch_assoc();
-}
-
-function mettreAJourCourrier($id, $date, $numero, $objet, $nature, $type, $expediteur, $pdf = null)
-{
-    global $connexion;
+    // Nettoyage des entrées
+    $username = trim($username);
     
     try {
-        if ($pdf !== null) {
-            $sql = "UPDATE courrier SET date = ?, Numero_courrier = ?, Objet = ?, Nature = ?, Type = ?, Expediteur = ?, pdf = ? WHERE id_courrier = ?";
-            $stmt = $connexion->prepare($sql);
-            $stmt->bind_param("sssssssi", $date, $numero, $objet, $nature, $type, $expediteur, $pdf, $id);
-        } else {
-            $sql = "UPDATE courrier SET date = ?, Numero_courrier = ?, Objet = ?, Nature = ?, Type = ?, Expediteur = ? WHERE id_courrier = ?";
-            $stmt = $connexion->prepare($sql);
-            $stmt->bind_param("ssssssi", $date, $numero, $objet, $nature, $type, $expediteur, $id);
+        $stmt = $connexion->prepare("SELECT * FROM `user` WHERE `Username` = ? LIMIT 1");
+        if (!$stmt) {
+            error_log("Erreur de préparation de requête: " . $connexion->error);
+            return null;
         }
-
-        if ($stmt->execute()) {
-            header("Location: liste_courrier.php?success=1");
-            exit();
-        } else {
-            header("Location: liste_courrier.php?error=update_failed");
-            exit();
-        }
-    } catch (Exception $e) {
-        // Loguer l'erreur dans un fichier log
-        error_log("Erreur lors de la mise à jour du courrier: " . $e->getMessage());
         
-        // Redirection avec message d'erreur
-        header("Location: liste_courrier.php?error=database_error");
-        exit();
+        $stmt->bind_param("s", $username);
+        if (!$stmt->execute()) {
+            error_log("Erreur d'exécution de requête: " . $stmt->error);
+            return null;
+        }
+        
+        $result = $stmt->get_result();
+        
+        if ($row = $result->fetch_assoc()) {
+             //Vérification du mot de passe avec password_verify (nécessite que les mots de passe soient hashés avec password_hash)
+            if (password_verify($password, $row['Password'])) {
+                //Journalisation de la connexion réussie
+                logActivity($username, "Connexion réussie");
+                return $row;
+            }
+            
+            // Alternative si vous devez conserver sha1 temporairement
+             //if (hash_equals(sha1($password), $row['Password'])) {
+                //logActivity($username, "Connexion réussie");
+                //return $row;
+            //}
+        }
+        
+        // Journalisation des tentatives échouées avec un délai pour ralentir les attaques par force brute
+        logActivity($username, "Tentative de connexion échouée");
+        usleep(rand(200000, 500000)); // Délai aléatoire entre 200ms et 500ms
+        
+        return null;
+    } catch (Exception $e) {
+        error_log("Exception dans la fonction login: " . $e->getMessage());
+        return null;
     }
 }
 
-function supprimerCourrier($id) {
-    global $connexion;
-    
-    try {
-        // 1. Validation de l'ID
-        if (!is_numeric($id) || $id <= 0) {
-            throw new Exception("ID de courrier invalide");
-        }
 
-        // 2. Vérification de l'existence du courrier
-        $verifSql = "SELECT id_courrier FROM courrier WHERE id_courrier = ?";
-        $verifStmt = $connexion->prepare($verifSql);
-        $verifStmt->bind_param("i", $id);
-        $verifStmt->execute();
-        
-        if ($verifStmt->get_result()->num_rows === 0) {
-            throw new Exception("Le courrier n'existe pas");
-        }
-
-        // 3. Suppression du PDF associé si existant (optionnel)
-        $pdfSql = "SELECT pdf FROM courrier WHERE id_courrier = ?";
-        $pdfStmt = $connexion->prepare($pdfSql);
-        $pdfStmt->bind_param("i", $id);
-        $pdfStmt->execute();
-        $pdfResult = $pdfStmt->get_result();
-        
-        if ($pdfRow = $pdfResult->fetch_assoc()) {
-            // Si vous stockez les fichiers sur le système de fichiers
-            // if (!empty($pdfRow['pdf']) && file_exists($pdfRow['pdf'])) {
-            //     unlink($pdfRow['pdf']);
-            // }
-        }
-
-        // 4. Suppression dans la base de données
-        $deleteSql = "DELETE FROM courrier WHERE id_courrier = ?";
-        $deleteStmt = $connexion->prepare($deleteSql);
-        $deleteStmt->bind_param("i", $id);
-        
-        if ($deleteStmt->execute()) {
-            // Journalisation de la suppression (optionnel)
-            error_log("Courrier ID $id supprimé avec succès");
-            return true;
-        } else {
-            throw new Exception("Erreur lors de la suppression");
-        }
-    } catch (Exception $e) {
-        // Journalisation de l'erreur
-        error_log("Erreur suppression courrier: " . $e->getMessage());
-        return false;
-    } finally {
-        // Nettoyage
-        if (isset($verifStmt)) $verifStmt->close();
-        if (isset($pdfStmt)) $pdfStmt->close();
-        if (isset($deleteStmt)) $deleteStmt->close();
-    }
-}
-
-// ... [Le reste de vos fonctions existantes peut être conservé] ...
-
-function getCourrierById($id_courrier) {
-    global $connexion;
-    $sql = "SELECT * FROM courrier WHERE id_courrier = ?";
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param("i", $id_courrier);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    return $result->fetch_assoc();
-}
-
+// Fonction pour journaliser les activités
 function logActivity($username, $action) {
     global $connexion;
-    $sql = "INSERT INTO activity_log (username, action, timestamp) VALUES (?, ?, NOW())";
-    $stmt = $connexion->prepare($sql);
-    $stmt->bind_param("ss", $username, $action);
-    $stmt->execute();
+    
+    if (!is_string($username)) {
+        $username = 'system';
+    }
+    if (!is_string($action)) return false;
+    
+    try {
+        $sql = "INSERT INTO activity_log (username, action, activity_date) VALUES (?, ?, NOW())";
+        $stmt = $connexion->prepare($sql);
+        
+        if (!$stmt) {
+            error_log("Erreur de préparation du log: " . $connexion->error);
+            return false;
+        }
+        
+        $stmt->bind_param("ss", $username, $action);
+        
+        if (!$stmt->execute()) {
+            error_log("Erreur d'enregistrement du log: " . $stmt->error);
+            return false;
+        }
+        
+        return true;
+    } catch (Exception $e) {
+        error_log("Exception dans logActivity: " . $e->getMessage());
+        return false;
+    }
 }
 
+// Fonction pour vérifier les permissions de l'utilisateur
+function checkPermission($requiredPermission) {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
+    
+    if (empty($_SESSION['user_permissions'])) {
+        return false;
+    }
+    
+    return in_array($requiredPermission, $_SESSION['user_permissions'], true);
+}
 
+// Fonction pour sécuriser les sorties HTML
+function escapeHtml($data) {
+    if (is_array($data)) {
+        return array_map('escapeHtml', $data);
+    }
+    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+}

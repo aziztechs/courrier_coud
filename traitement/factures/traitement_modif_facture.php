@@ -12,7 +12,7 @@ $errors = [];
 $success = false;
 
 // Récupérer la facture existante
-$facture = get_facture($id_facture);
+$facture = getFactures($id_facture);
 if (!$facture) {
     header('Location: liste_factures.php');
     exit();
@@ -43,54 +43,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validation des champs (identique à ajouter_facture.php)
     // [...] (mêmes validations que dans ajouter_facture.php)
 
-    // Gestion du fichier PDF
-    $pdfPath = null;
+  // Configuration du chemin des factures
+    $facturesDir = __DIR__ . '/../../uploads/factures/';
+    $baseUrlPath = '../../uploads/factures/'; // Chemin relatif pour la BDD
+
+    $pdfPath = $facture['facture_pdf'] ?? null; // Conserve le chemin existant par défaut
     $deletePdf = isset($_POST['delete_pdf']);
     $hasNewPdf = isset($_FILES['facture_pdf']) && $_FILES['facture_pdf']['error'] === UPLOAD_ERR_OK;
 
+    // 1. Gestion de la suppression du PDF
     if ($deletePdf && !empty($facture['facture_pdf'])) {
-        // Suppression du PDF existant
-        if (file_exists($facture['facture_pdf'])) {
-            unlink($facture['facture_pdf']);
+        $fullPath = $facturesDir . basename($facture['facture_pdf']);
+        if (file_exists($fullPath)) {
+            if (!unlink($fullPath)) {
+                $errors['facture_pdf'] = 'Erreur lors de la suppression du fichier existant';
+            } else {
+                $pdfPath = ''; // Indique que le PDF a été supprimé
+            }
         }
-        $pdfPath = ''; // Chaîne vide pour indiquer la suppression en base
-    } elseif ($hasNewPdf) {
-        // Upload d'un nouveau PDF
+    }
+
+    // 2. Gestion du nouvel upload
+    if ($hasNewPdf && empty($errors)) {
         $file = $_FILES['facture_pdf'];
         
-        // Vérification du type et taille
-        $fileType = mime_content_type($file['tmp_name']);
-        if ($fileType !== 'application/pdf') {
+        // Validation du fichier
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+        
+        // Vérifications
+        if ($mimeType !== 'application/pdf') {
             $errors['facture_pdf'] = 'Seuls les fichiers PDF sont acceptés';
-        } elseif ($file['size'] > 5 * 1024 * 1024) {
+        } elseif ($file['size'] > 5 * 1024 * 1024) { // 5MB max
             $errors['facture_pdf'] = 'Le fichier ne doit pas dépasser 5MB';
-        } else {
-            // Création du répertoire si inexistant
-            $uploadDir = '../../uploads/factures/';
-            if (!file_exists($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
+        } elseif (!is_uploaded_file($file['tmp_name'])) {
+            $errors['facture_pdf'] = 'Fichier uploadé invalide';
+        }
+        
+        // Si tout est valide
+        if (empty($errors)) {
+            // Création du répertoire si nécessaire
+            if (!file_exists($facturesDir)) {
+                if (!mkdir($facturesDir, 0755, true)) {
+                    $errors['facture_pdf'] = 'Impossible de créer le dossier de stockage';
+                }
             }
             
-            // Génération d'un nom unique
-            $fileName = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9\.\-_]/', '', $file['name']);
-            $pdfPath = $uploadDir . $fileName;
-            
-            // Déplacement du fichier
-            if (!move_uploaded_file($file['tmp_name'], $pdfPath)) {
-                $errors['facture_pdf'] = 'Erreur lors de l\'upload du fichier';
-            } else {
-                // Suppression de l'ancien PDF si existant
-                if (!empty($facture['facture_pdf']) && file_exists($facture['facture_pdf'])) {
-                    unlink($facture['facture_pdf']);
+            if (empty($errors)) {
+                // Génération d'un nom de fichier sécurisé
+                $extension = 'pdf';
+                $newFilename = 'facture_' . uniqid() . '_' . time() . '.' . $extension;
+                $destination = $facturesDir . $newFilename;
+                
+                // Déplacement du fichier
+                if (move_uploaded_file($file['tmp_name'], $destination)) {
+                    // Suppression de l'ancien fichier si existant
+                    if (!empty($facture['facture_pdf'])) {
+                        $oldFile = $facturesDir . basename($facture['facture_pdf']);
+                        if (file_exists($oldFile)) {
+                            unlink($oldFile);
+                        }
+                    }
+                    $pdfPath = $baseUrlPath . $newFilename; // Chemin relatif pour la BDD
+                } else {
+                    $errors['facture_pdf'] = 'Erreur lors de l\'enregistrement du fichier';
                 }
             }
         }
     }
 
+    // 3. Si aucune modification de PDF n'est demandée, on conserve le chemin existant
+    if (!$deletePdf && !$hasNewPdf && isset($facture['facture_pdf'])) {
+        $pdfPath = $facture['facture_pdf'];
+    }
     // Si pas d'erreurs, mise à jour en base
     if (empty($errors)) {
         try {
-            if (modifier_facture($id_facture, $data, $pdfPath ?? $facture['facture_pdf'])) {
+            if (modifierFacture($id_facture, $data, $pdfPath ?? $facture['facture_pdf'])) {
                 $_SESSION['success_message'] = 'La facture a été modifiée avec succès';
                 header("Refresh: 2; URL=liste_factures.php");
                 $show_redirect_message = true;

@@ -1,59 +1,80 @@
 <?php
+require_once('fonction.php'); // Pour la connexion à la base
+require_once('fonction_archive.php'); // Pour les fonctions d'archivage
+
 // Configuration de la pagination
 $perPage = 5;
-$currentPage = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, [
-    'options' => [
-        'default' => 1,
-        'min_range' => 1
-    ]
-]);
+$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$currentPage = max(1, $currentPage);
 $offset = ($currentPage - 1) * $perPage;
 
-// Définition des filtres avec validation et assainissement
+// Définition des filtres avec validation
 $allowedTypes = ['manuel', 'automatique', 'annuel', ''];
-$allowedMotifs = ['traitement_termine', 'delai_depasse', 'demande_specifique', ''];
 
 $filters = [
-    'search' => filter_input(INPUT_GET, 'search', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?? '',
-    'type_archivage' => in_array(filter_input(INPUT_GET, 'type_archivage'), $allowedTypes) 
-        ? filter_input(INPUT_GET, 'type_archivage') : '',
-    'motif_archivage' => in_array(filter_input(INPUT_GET, 'motif_archivage'), $allowedMotifs)
-        ? filter_input(INPUT_GET, 'motif_archivage') : '',
-    'date_archivage' => filter_input(INPUT_GET, 'date_archivage', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?? ''
+    'search' => isset($_GET['search']) ? trim($_GET['search']) : '',
+    'type_archivage' => isset($_GET['type_archivage']) && in_array($_GET['type_archivage'], $allowedTypes) 
+        ? $_GET['type_archivage'] : '',
+    'date_debut' => isset($_GET['date_debut']) ? $_GET['date_debut'] : '',
+    'date_fin' => isset($_GET['date_fin']) ? $_GET['date_fin'] : ''
 ];
 
-// Validation de la date
-if (!empty($filters['date_archivage'])) {
-    $dateParts = explode('-', $filters['date_archivage']);
-    if (count($dateParts) === 3 && checkdate($dateParts[1], $dateParts[2], $dateParts[0])) {
-        $filters['date_archivage'] = $dateParts[0] . '-' . $dateParts[1] . '-' . $dateParts[2];
-    } else {
-        $filters['date_archivage'] = '';
-    }
+// Validation des dates
+function validateDate($date, $format = 'Y-m-d') {
+    $d = DateTime::createFromFormat($format, $date);
+    return $d && $d->format($format) === $date;
 }
 
-// Récupération des données avec gestion des erreurs
+// Nettoyage des dates invalides
+if (!empty($filters['date_debut']) && !validateDate($filters['date_debut'])) {
+    $filters['date_debut'] = '';
+}
+
+if (!empty($filters['date_fin']) && !validateDate($filters['date_fin'])) {
+    $filters['date_fin'] = '';
+}
+
+// Correction si date_debut > date_fin
+if (!empty($filters['date_debut']) && !empty($filters['date_fin']) 
+    && $filters['date_debut'] > $filters['date_fin']) {
+    $temp = $filters['date_debut'];
+    $filters['date_debut'] = $filters['date_fin'];
+    $filters['date_fin'] = $temp;
+}
+
+// Adaptation des filtres pour utiliser nos fonctions
+$adaptedFilters = [
+    'search' => $filters['search'],
+    'type_archivage' => $filters['type_archivage']
+];
+
+// Ajout du filtre de date si valide
+if (!empty($filters['date_debut'])) {
+    $adaptedFilters['date_archivage'] = $filters['date_debut'];
+}
+
+// Récupération des données avec nos fonctions
 try {
-    $archives = getArchivesWithFilters($filters, $offset, $perPage);
-    $totalArchives = countArchivesWithFilters($filters);
+    // Récupération des archives filtrées
+    $archives = getArchivesWithFilters($adaptedFilters, $offset, $perPage);
+    
+    // Comptage total des archives filtrées
+    $totalArchives = countArchivesWithFilters($adaptedFilters);
+    
+    // Calcul du nombre total de pages
     $totalPages = max(1, ceil($totalArchives / $perPage));
     
-    // Correction de la page courante si elle dépasse le nombre total de pages
+    // Correction de la page courante si nécessaire
     if ($currentPage > $totalPages && $totalPages > 0) {
         $currentPage = $totalPages;
         $offset = ($currentPage - 1) * $perPage;
-        $archives = getArchivesWithFilters($filters, $offset, $perPage);
+        $archives = getArchivesWithFilters($adaptedFilters, $offset, $perPage);
     }
-} catch (PDOException $e) {
-    error_log("Erreur base de données: " . $e->getMessage());
-    $archives = [];
-    $totalArchives = 0;
-    $totalPages = 1;
-    $errorMessage = "Une erreur est survenue lors de la récupération des archives.";
+    
+    $errorMessage = '';
 } catch (Exception $e) {
-    error_log("Erreur: " . $e->getMessage());
+    $errorMessage = "Erreur lors de la récupération des archives: " . $e->getMessage();
     $archives = [];
     $totalArchives = 0;
     $totalPages = 1;
-    $errorMessage = "Une erreur inattendue est survenue.";
 }

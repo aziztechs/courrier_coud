@@ -1,44 +1,49 @@
-        .card-header {
-            padding: 0.75rem 1.25rem;
+       .badge-avoir { background-color: #28a745; }
+        .badge-proforma { background-color: #ffc107; color: #000; }
+        .badge-facture { background-color: #007bff; }
+        .table-responsive { overflow-x: auto; }
+        .action-btns { white-space: nowrap; }
+        .text-truncate { max-width: 200px; }
+        .filter-card { 
+            background: #f8f9fa; 
+            padding: 1rem;
+            border-radius: 0.5rem; 
+            margin-bottom: 0.5rem;
         }
-        .table-responsive {
-            max-height: 600px;
+        .datepicker-container { position: relative; }
+        .clear-date { 
+            position: absolute; right: 10px; top: 50%; 
+            transform: translateY(-50%); cursor: pointer; 
+            color: #6c757d; font-size: 1.2rem;
         }
-        .table th {
-            white-space: nowrap;
-            position: sticky;
-            top: 0;
-            background-color: #f8f9fa;
+        .pagination .page-item.active .page-link { background-color: #0056b3; border-color: #0056b3; }
+        .filter-label { 
+            font-size: 0.875rem; 
+            margin-bottom: 0.25rem;
         }
-        .action-buttons .btn {
-            margin: 0 2px;
-            padding: 0.25rem 0.5rem;
+        .btn-sm-pdf { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+
+        /**
+         * ajouté pour la compatibilité avec les anciens navigateurs
+         * et pour éviter les conflits avec les styles globaux.
+         */
+
+         .required:after {
+            content: " *";
+            color: red;
         }
-        .badge-nature {
-            font-size: 1.8rem;
-            background-color:rgb(9, 123, 222);
-            color: white;
+        .form-container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
-        .badge-type {
-            background-color: #17a2b8;
-            color: white;
+        .is-invalid {
+            border-color: #dc3545;
         }
-        .badge-status {
-            font-size: 1.8rem;
-            background-color:rgb(9, 123, 222);
-            color: white;
+        .invalid-feedback {
+            display: block;
+            color: #dc3545;
         }
-        .badge-type {
-            background-color: #17a2b8;
-            color: white;
+        .info-banner {
+            height: 120px; 
+            background-color: #0056b3;
         }
-        .filter-card {
-            margin-bottom: 20px;
-        }
-    
-        .badge-manuel { background-color: #0d6efd; }
-        .badge-automatique { background-color: #0dcaf0; }
-        .badge-annuel { background-color: #ffc107; color: #000; }
-        .table-responsive { max-height: 600px; }
-        .action-buttons .btn { margin: 0 2px; }
-        .text-truncate { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

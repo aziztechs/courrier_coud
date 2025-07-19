@@ -5,6 +5,7 @@ if (!empty($_SESSION['username']) && !empty($_SESSION['password'])) {
 }
 include('activite.php');
 include('traitement/connect.php');
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -23,7 +24,7 @@ include('traitement/connect.php');
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     body {
-      background: url('assets/images/backMail.jpg') no-repeat center center fixed;
+      background: url('assets/images/hero-bg.jpg') no-repeat center center fixed;
       background-size: cover;
       height: 100vh;
       display: flex;
@@ -39,7 +40,8 @@ include('traitement/connect.php');
       border-radius: 20px;
       padding: 30px;
       width: 100%;
-      max-width: 400px;
+      max-width: 500px;
+      height: 400px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
       border: 1px solid rgba(255, 255, 255, 0.3);
       margin-top: 120px; /* Augmentation de la marge supérieure */
@@ -78,13 +80,13 @@ include('traitement/connect.php');
 
 <body>
 
-  <header class="s-header fixed-top">
+  <header class="s-header fixed-top" style="background-color: #0076FF">
     <div class="header-content ">
       <div class="header-logo">
         <a class="site-logo mt-2" href="/courrier_coud/login.php">
             <img src="/courrier_coud/assets/images/logo.png" alt="Logo Campus Coud" />
         </a>
-      <div class="institution-name" style="color: #fff; margin-top: 3px;">CAMPUS COUD</div>
+      <div class="institution-name" style="color: #fff; margin-top: 3px;">COURRIER COUD</div>
     </div>          
     <a class="header-menu-toggle" href="#0" id="menu-toggle"><span>Menu</span></a>
   </header>
@@ -108,7 +110,7 @@ include('traitement/connect.php');
                     style="border-radius: 20px; border: none; height: 40px; padding: 0 15px;">
           </div>
           <div class="form-field">
-            <input name="password" type="password" required id="password" placeholder="Mot de passe" value="" class="full-width"
+            <input name="password" type="password" required id="password" placeholder="Password" value="" class="full-width"
                     style="border-radius: 20px; border: none; height: 40px; padding: 0 15px; margin-top: 15px;">
           </div>
           <?php if (isset($error_message)) { ?>
@@ -118,9 +120,7 @@ include('traitement/connect.php');
             <button type="submit" class="full-width btn--primary" style="border-radius: 20px; height: 40px;">
               Se connecter
             </button>
-            
-            <a href='#' style="display: block; text-align: center; margin-top: 15px;">Mot de passe oublié ?</a>
-            <center> <a href='index.php' style="display: inline-block; margin-top: 10px;">Retour</a> </center>
+             
           </div>
         </fieldset>
       </form>

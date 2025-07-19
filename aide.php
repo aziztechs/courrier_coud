@@ -46,7 +46,7 @@
         <div class="row footer-bottom">
             <div class="col-twelve">
                 <div class="copyright">
-                    <span>©Copyright COUD@2023</span> 
+                    <span>©Copyright COUD@2025</span> 
                 </div>
             </div>
         </div>

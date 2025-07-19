@@ -1,7 +1,4 @@
 <?php
-include('../../traitement/fonction.php'); // Assurez-vous que $connexion (mysqli) est bien initialisé ici
-
-
 require_once('fonction.php'); // Pour la connexion à la base
 
 /**
@@ -23,37 +20,25 @@ function getNumerosCorrespondance() {
 
 /**
  * Ajoute une nouvelle archive
- * @param array $data Les données de l'archive
- * @return bool True si succès, false sinon
- * @throws Exception Si le numéro de correspondance existe déjà
  */
 function ajouterArchive($data) {
     global $connexion;
     
     // Vérifier si le numéro de correspondance existe déjà
-    $stmt = $connexion->prepare("SELECT COUNT(*) FROM archive WHERE num_correspondance = ?");
-    $stmt->bind_param("s", $data['num_correspondance']);
-    $stmt->execute();
-    $count = 0;
-    $stmt->bind_result($count);
-    $stmt->fetch();
-    $stmt->close();
-    
-    if ($count > 0) {
+    if (numeroCorrespondanceExiste($data['num_correspondance'])) {
         throw new Exception("Ce numéro de correspondance existe déjà dans les archives.");
     }
     
     // Préparation de la requête d'insertion
     $stmt = $connexion->prepare("INSERT INTO archive 
-        (type_archivage, num_correspondance, pdf_archive, motif_archivage, commentaire, date_archivage) 
-        VALUES (?, ?, ?, ?, ?, NOW())");
+        (type_archivage, num_correspondance, pdf_archive, commentaire, date_archivage) 
+        VALUES (?, ?, ?, ?, NOW())");
     
     $stmt->bind_param(
-        "sssss", 
+        "ssss", 
         $data['type_archivage'],
         $data['num_correspondance'],
         $data['pdf_archive'],
-        $data['motif_archivage'],
         $data['commentaire']
     );
     
@@ -63,13 +48,28 @@ function ajouterArchive($data) {
     return $result;
 }
 
+/**
+ * Vérifie si un numéro de correspondance existe déjà
+ */
+function numeroCorrespondanceExiste($num_correspondance) {
+    global $connexion;
+    $stmt = $connexion->prepare("SELECT COUNT(*) FROM archive WHERE num_correspondance = ?");
+    $stmt->bind_param("s", $num_correspondance);
+    $stmt->execute();
+    $count = 0;
+    $stmt->bind_result($count);
+    $stmt->fetch();
+    $stmt->close();
+    return $count > 0;
+}
 
-
-// 🔹 READ : Récupérer toutes les archives
+/**
+ * Récupère toutes les archives
+ * @return array Tableau des archives
+ */
 function getAllArchives() {
     global $connexion;
-
-    $sql = "SELECT * FROM archive ORDER BY date_archivage DESC";
+    $sql = "SELECT * FROM archive ORDER BY id_archive DESC";
     $result = $connexion->query($sql);
 
     $archives = [];
@@ -81,12 +81,8 @@ function getAllArchives() {
     return $archives;
 }
 
-
-
 /**
  * Récupère une archive par son ID
- * @param int $id_archive ID de l'archive
- * @return array|null Les données de l'archive ou null si non trouvée
  */
 function getArchiveById($id_archive) {
     global $connexion;
@@ -102,27 +98,22 @@ function getArchiveById($id_archive) {
 
 /**
  * Modifie une archive existante
- * @param array $data Les données de l'archive à modifier
- * @return bool True si succès, false sinon
  */
 function modifierArchive($data) {
     global $connexion;
     
-    // Préparation de la requête de mise à jour
     $stmt = $connexion->prepare("UPDATE archive SET 
         type_archivage = ?,
         num_correspondance = ?,
         pdf_archive = ?,
-        motif_archivage = ?,
         commentaire = ?
         WHERE id_archive = ?");
     
     $stmt->bind_param(
-        "sssssi", 
+        "ssssi", 
         $data['type_archivage'],
         $data['num_correspondance'],
         $data['pdf_archive'],
-        $data['motif_archivage'],
         $data['commentaire'],
         $data['id_archive']
     );
@@ -135,8 +126,6 @@ function modifierArchive($data) {
 
 /**
  * Supprime une archive par son ID
- * @param int $id_archive ID de l'archive à supprimer
- * @return bool True si succès, false sinon
  */
 function supprimerArchive($id_archive) {
     global $connexion;
@@ -147,6 +136,9 @@ function supprimerArchive($id_archive) {
     return $result;
 }
 
+/**
+ * Récupère les archives paginées
+ */
 function getArchivesPaginated($offset, $perPage) {
     global $connexion;
 
@@ -163,6 +155,9 @@ function getArchivesPaginated($offset, $perPage) {
     return $archives;
 }
 
+/**
+ * Compte le nombre total d'archives
+ */
 function countTotalArchives() {
     global $connexion;
     $sql = "SELECT COUNT(*) as total FROM archive";
@@ -173,16 +168,101 @@ function countTotalArchives() {
     return 0;
 }
 
-// Fonctions à ajouter dans fonction_archive.php
+
+// Dans votre fichier PHP (au début, avant le HTML)
+function getEnumValuesMysqli($connexion, $table, $column) {
+    global $connexion;
+    $sql = "SHOW COLUMNS FROM $table LIKE '$column'";
+    $result = $connexion->query($sql);
+    
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        if (isset($row['Type'])) {
+            preg_match("/^enum\(\'(.*)\'\)$/", $row['Type'], $matches);
+            if ($matches) {
+                return explode("','", $matches[1]);
+            }
+        }
+    }
+    return [];
+}
+
+// Modifier les fonctions de filtrage comme suit:
 
 function getArchivesWithFilters($filters, $offset, $perPage) {
     global $connexion;
     
+    // Construction de la requête de base
     $query = "SELECT * FROM archive WHERE 1=1";
     $params = [];
     $types = '';
     
-    // Construction dynamique de la requête
+    // Filtre de recherche
+    if (!empty($filters['search'])) {
+        $query .= " AND (num_correspondance LIKE ? OR commentaire LIKE ? OR type_archivage LIKE ?)";
+        $searchTerm = '%' . $filters['search'] . '%';
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
+        $types .= 'sss';
+    }
+    
+    // Filtre par type d'archivage
+    if (!empty($filters['type_archivage'])) {
+        $query .= " AND type_archivage = ?";
+        $params[] = $filters['type_archivage'];
+        $types .= 's';
+    }
+    
+    // Filtre par date de début
+    if (!empty($filters['date_debut'])) {
+        $query .= " AND DATE(date_archivage) >= ?";
+        $params[] = $filters['date_debut'];
+        $types .= 's';
+    }
+    
+    // Filtre par date de fin
+    if (!empty($filters['date_fin'])) {
+        $query .= " AND DATE(date_archivage) <= ?";
+        $params[] = $filters['date_fin'];
+        $types .= 's';
+    }
+    
+    // Ajout de la pagination
+    $query .= " ORDER BY date_archivage DESC LIMIT ?, ?";
+    $params = array_merge($params, [$offset, $perPage]);
+    $types .= 'ii';
+    
+    // Préparation et exécution de la requête
+    $stmt = $connexion->prepare($query);
+    if (!$stmt) {
+        throw new Exception("Erreur de préparation de la requête: " . $connexion->error);
+    }
+    
+    if ($types && !$stmt->bind_param($types, ...$params)) {
+        throw new Exception("Erreur de liaison des paramètres: " . $stmt->error);
+    }
+    
+    if (!$stmt->execute()) {
+        throw new Exception("Erreur d'exécution de la requête: " . $stmt->error);
+    }
+    
+    $result = $stmt->get_result();
+    if (!$result) {
+        throw new Exception("Erreur de récupération des résultats: " . $stmt->error);
+    }
+    
+    $archives = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    
+    return $archives;
+}
+
+function countArchivesWithFilters($filters) {
+    global $connexion;
+    
+    $query = "SELECT COUNT(*) as total FROM archive WHERE 1=1";
+    $params = [];
+    $types = '';
+    
     if (!empty($filters['search'])) {
         $query .= " AND (num_correspondance LIKE ? OR commentaire LIKE ?)";
         $searchTerm = '%' . $filters['search'] . '%';
@@ -197,54 +277,21 @@ function getArchivesWithFilters($filters, $offset, $perPage) {
         $types .= 's';
     }
     
-    if (!empty($filters['motif_archivage'])) {
-        $query .= " AND motif_archivage = ?";
-        $params[] = $filters['motif_archivage'];
-        $types .= 's';
-    }
-    
-    if (!empty($filters['date_archivage'])) {
+    // Gestion des dates
+    if (!empty($filters['date_debut'])) {
         $query .= " AND date_archivage >= ?";
-        $params[] = $filters['date_archivage'] . ' 00:00:00';
+        $params[] = $filters['date_debut'] . ' 00:00:00';
         $types .= 's';
     }
     
-   
-    $query .= " ORDER BY date_archivage DESC LIMIT ?, ?";
-    $params[] = $offset;
-    $params[] = $perPage;
-    $types .= 'ii';
-    
-    $stmt = $connexion->prepare($query);
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    return $result->fetch_all(MYSQLI_ASSOC);
-}
-
-
-
-function countArchivesWithFilters($filters) {
-    global $connexion;
-    
-    $query = "SELECT COUNT(*) as total FROM archive WHERE 1=1";
-    $params = [];
-    $types = '';
-    
-    // Mêmes filtres que getArchivesWithFilters
-    if (!empty($filters['search'])) {
-        $query .= " AND (num_correspondance LIKE ? OR commentaire LIKE ?)";
-        $searchTerm = '%' . $filters['search'] . '%';
-        $params[] = $searchTerm;
-        $params[] = $searchTerm;
-        $types .= 'ss';
+    if (!empty($filters['date_fin'])) {
+        $query .= " AND date_archivage <= ?";
+        $params[] = $filters['date_fin'] . ' 23:59:59';
+        $types .= 's';
     }
     
-    // ... (autres filtres)
-    
     $stmt = $connexion->prepare($query);
-    if (!empty($params)) {
+    if ($types) {
         $stmt->bind_param($types, ...$params);
     }
     $stmt->execute();
@@ -253,5 +300,3 @@ function countArchivesWithFilters($filters) {
     
     return $row['total'];
 }
-
-?>

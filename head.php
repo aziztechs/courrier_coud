@@ -1,5 +1,5 @@
 <?php
-if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
+if (empty($_SESSION['username'])) {
     header('Location: /courrier_coud/');
     exit();
 }
@@ -68,7 +68,15 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
         }
 
         .nav-item {
-            margin-left: 20px;
+            margin-left: 5px;
+            position: relative;
+        }
+
+        /* Style pour l'élément actif */
+        .nav-item.active a {
+            background-color: #003366;
+            color: white !important;
+            border-radius: 4px;
         }
 
         /* Couleurs */
@@ -88,8 +96,8 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
         }
 
         .btn--primary:hover {
-            color: #003366;
-            background-color: #f0f7ff;
+            color: #8cbff3ff;
+            background-color:rgba(21, 21, 46, 1);
         }
 
         /* Style pour les liens désactivés */
@@ -159,7 +167,7 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
             }
 
             .nav-item {
-                margin: 5px 0;
+                margin: 2px 0;
             }
 
             .header-menu-toggle {
@@ -174,48 +182,48 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
     <header class="s-header fixed-top" style="background-color: #0076FF">
         <div class="header-content">
             <div class="header-logo">
-                <a class="site-logo" href="/courrier_coud/login.php">
+                <a class="site-logo" href="/courrier_coud/profils/courrier/dashboard.php">
                     <img src="/courrier_coud/assets/images/logo.png" alt="Logo COURRIER_COUD" />
                 </a>
-                <div class="institution-name">COURRIER</div>
+                <div class="institution-name" style="color: #fff; margin-top: 3px;">COURRIERS COUD</div>
             </div>
 
             <div class="header-nav-right ">
                 <ul class="header-nav" id="main-nav">
-                    <li class="nav-item">
-                        <a class="btn--primary text-white" href="/courrier_coud/profils/courrier/dashboard.php">
-                            <i class="fa fa-dashboard" aria-hidden="true"></i> Tableau de Bord
+                    <li class="nav-item <?= in_array(basename($_SERVER['PHP_SELF']),  ['dashboard.php','view_courrier.php']) ? 'active' : '' ?>">
+                        <a class="btn--primary text-white" href="/courrier_coud/profils/dashboards/dashboard.php">
+                            <i class="fa fa-dashboard" aria-hidden="true"></i> TABLEAU DE BORD
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="btn--primary text-white" href="/courrier_coud/profils/courrier/liste_courrier.php">
-                            <i class="fas fa-envelope" aria-hidden="true"></i> Courrier
+                    <li class="nav-item <?= in_array(basename($_SERVER['PHP_SELF']), ['liste_courriers.php', 'ajouter_courrier.php', 'modifier_courrier.php']) ? 'active' : '' ?>">
+                        <a class="btn--primary text-white" href="/courrier_coud/profils/courrier/liste_courriers.php">
+                            <i class="fas fa-envelope" aria-hidden="true"></i> COURRIERS
                         </a>
                     </li>
-                    <?php if(!isset($_SESSION['Fonction']) || $_SESSION['Fonction'] !== 'assistant_courrier'): ?>
-                    <li class="nav-item">
-                        <a class="btn--primary text-white" href="/courrier_coud/profils/courrier/liste_archive.php">
-                            <i class="fas fa-box-archive" aria-hidden="true"></i> Archivage
+                    <li class="nav-item <?= in_array(basename($_SERVER['PHP_SELF']),
+                     ['liste_archive.php', 'liste_factures.php', 'modifier_archive.php', 'modifier_facture.php', 'ajouter_archive.php','ajouter_facture.php']) ?
+                      'active' : '' ?>">
+                        <a class="btn--primary text-white" href="/courrier_coud/profils/archives/liste_archive.php">
+                            <i class="fas fa-box-archive" aria-hidden="true"></i> ARCHIVES
                         </a>
                     </li>
-                     <?php endif; ?>
-                     <?php if(!isset($_SESSION['Fonction']) || $_SESSION['Fonction'] !== 'assistant_courrier'): ?>
-                    <li class="nav-item">
-                        <a class="btn--primary text-white" href="/courrier_coud/profils/suivi/liste_suivi_courrier.php">
-                            <i class="fas fa-eye "  aria-hidden="true"></i> Suivi 
+                    <?php if(!isset($_SESSION['Fonction']) || $_SESSION['Fonction'] !== 'assistant_courrier' && $_SESSION['Fonction'] !== 'directeur'): ?>
+                    <li class="nav-item <?= in_array(basename($_SERVER['PHP_SELF']),['liste_suivi_courriers.php', 'ajouter_suivi_courrier.php', 'modifier_suivi_courrier.php']) ? 'active' : '' ?>">
+                        <a class="btn--primary text-white" href="/courrier_coud/profils/suivis/liste_suivi_courriers.php">
+                            <i class="fas fa-eye" aria-hidden="true"></i> SUIVIS
                         </a>
                     </li>
-                     <?php endif; ?>
-                    <?php if (!isset($_SESSION['Fonction']) || $_SESSION['Fonction'] !== 'assistant_courrier'): ?>
-                        <li class="nav-item">
+                    <?php endif; ?>
+                    <?php if (isset($_SESSION['Fonction']) && $_SESSION['Fonction'] === 'superadmin'): ?>
+                        <li class="nav-item <?= in_array(basename($_SERVER['PHP_SELF']), ['users.php', 'addUser.php', 'editUser.php']) ? 'active' : '' ?>">
                             <a class="btn--primary text-white" href="/courrier_coud/profils/admin/users.php">
-                                <i class="fa fa-users" aria-hidden="true"></i> Utilisateurs
+                                <i class="fa fa-users" aria-hidden="true"></i> UTILISATEURS
                             </a>
                         </li>
                     <?php endif; ?>
                 
                     <li class="nav-item">
-                        <a class="btn--primary text-danger" href="/courrier_coud/index.php">
+                        <a class="btn--primary text-danger" href="/courrier_coud/logout.php" onclick="return confirm('Êtes-vous sûr de vouloir vous déconnecter ?')">
                             <i class="fa fa-sign-out-alt" aria-hidden="true"></i> Déconnexion
                         </a>
                     </li>
@@ -225,8 +233,6 @@ if (empty($_SESSION['username']) && empty($_SESSION['password'])) {
 
         <a class="header-menu-toggle" href="#0" id="menu-toggle"><span>Menu</span></a>
     </header> <br><br>
-
-
 
     <script>
         // Script pour le menu burger en mobile
